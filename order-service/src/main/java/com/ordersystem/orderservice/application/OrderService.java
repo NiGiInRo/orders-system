@@ -2,8 +2,10 @@ package com.ordersystem.orderservice.application;
 
 import com.ordersystem.orderservice.domain.exception.OrderNotFoundException;
 import com.ordersystem.orderservice.domain.model.Order;
+import com.ordersystem.orderservice.domain.model.OrderCreatedEvent;
 import com.ordersystem.orderservice.domain.ports.in.CreateOrderUseCase;
 import com.ordersystem.orderservice.domain.ports.in.GetOrderUseCase;
+import com.ordersystem.orderservice.domain.ports.out.OrderEventPublisher;
 import com.ordersystem.orderservice.domain.ports.out.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ public class OrderService implements CreateOrderUseCase, GetOrderUseCase {
 
     // El service solo conoce el puerto — no sabe que existe JpaOrderRepositoryAdapter
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher eventPublisher;
 
     @Override
     public Order execute(CreateOrderUseCase.Command command) {
@@ -24,8 +27,16 @@ public class OrderService implements CreateOrderUseCase, GetOrderUseCase {
                 command.productId(),
                 command.quantity()
         );
-        // delega la persistencia al puerto out — no sabe cómo se implementa
-        return orderRepository.save(order);
+        // primero persistir — si falla, el evento nunca se publica
+        Order saved = orderRepository.save(order);
+
+        // luego publicar — el evento lleva los datos de la orden ya guardada
+        eventPublisher.publishOrderCreated(
+                new OrderCreatedEvent(saved.getId(), saved.getCustomerId(),
+                        saved.getProductId(), saved.getQuantity())
+        );
+
+        return saved;
     }
 
     @Override

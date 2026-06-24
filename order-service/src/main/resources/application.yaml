@@ -31,3 +31,9 @@ management:
     web:
       exposure:
         include: health  # expone solo /actuator/health, nada más
+
+# configuración propia de eventos — separada de spring.rabbitmq (conexión)
+app:
+  rabbitmq:
+    exchange: orders.exchange
+    routing-key: order.created
