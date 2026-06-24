@@ -1,3 +1,33 @@
+server:
+  port: 8081  # puerto definido en la arquitectura del proyecto
+
 spring:
-  application:
-    name: order-service
+  datasource:
+    # ${VAR:default} → usa la variable de entorno si existe, si no usa el default
+    # en local corre con el default, en Docker usa las variables del docker-compose
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:orders_db}
+    username: ${DB_USER:orders_user}
+    password: ${DB_PASS:orders_pass}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # update: Hibernate crea o modifica las tablas automáticamente al arrancar
+      # para producción esto sería 'validate' o 'none' con Flyway/Liquibase
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health  # expone solo /actuator/health, nada más
