@@ -56,6 +56,31 @@ services:
       timeout: 5s
       retries: 5
 
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: orders-order-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: order-db
+      DB_PORT: 5432
+      DB_NAME: orders_db
+      DB_USER: orders_user
+      DB_PASS: orders_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - orders-network
+
 volumes:
   rabbitmq_data:
   order_db_data:
