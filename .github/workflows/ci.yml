@@ -24,3 +24,7 @@ jobs:
       - name: Build and test with Maven
         working-directory: order-service
         run: ./mvnw verify
+
+      - name: Build Docker image
+        working-directory: order-service
+        run: docker build -t order-service:${{ github.sha }} .
