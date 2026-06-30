@@ -1,10 +1,12 @@
 package com.ordersystem.orderservice.infrastructure.web;
 
 import com.jayway.jsonpath.JsonPath;
+import com.ordersystem.orderservice.domain.ports.out.OrderEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -37,6 +39,10 @@ class OrderControllerIntegrationTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
     }
+
+    // reemplaza el bean real de RabbitMQ por un mock — el test verifica HTTP + DB, no mensajería
+    @MockitoBean
+    OrderEventPublisher eventPublisher;
 
     @Autowired
     WebApplicationContext context;
