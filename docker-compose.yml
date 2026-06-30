@@ -48,6 +48,8 @@ services:
       POSTGRES_PASSWORD: inventory_pass
     volumes:
       - inventory_db_data:/var/lib/postgresql/data
+      # monta el script SQL en el directorio que Postgres lee al inicializar
+      - ./inventory-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - orders-network
     healthcheck:
