@@ -58,6 +58,37 @@ services:
       timeout: 5s
       retries: 5
 
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: orders-inventory-service
+    ports:
+      - "8082:8082"
+    environment:
+      POSTGRES_HOST: inventory-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - orders-network
+    healthcheck:
+      # python:3.11-slim no incluye curl — usamos urllib de la librería estándar
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   order-service:
     build:
       context: ./order-service
