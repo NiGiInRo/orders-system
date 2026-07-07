@@ -76,9 +76,9 @@ async def start_consumer(message_handler) -> None:
                 product_id=body["productId"],
                 quantity=body["quantity"],
             )
-
-            # Delegamos al handler inyectado — el consumer no sabe qué hace con el evento.
-            await message_handler(event)
+            # HU-14 usará este resultado para publicar inventory.checked
+            result = await message_handler(event)
+            logger.info("Order processed: order_id=%s approved=%s", event.order_id, result.approved)
 
     await queue.consume(on_message)
     logger.info("RabbitMQ consumer started — listening on queue '%s'", QUEUE_NAME)

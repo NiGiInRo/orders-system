@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from inventory_service.application.check_stock_service import CheckStockService
 from inventory_service.infrastructure.messaging.rabbitmq_consumer import start_consumer
+from inventory_service.infrastructure.persistence.product_repository_adapter import ProductRepositoryAdapter
 
 # Log estructurado básico — cada línea es parseable como JSON por herramientas de observabilidad.
 logging.basicConfig(
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # --- STARTUP ---
     # Instanciamos el servicio de aplicación que el consumer va a llamar.
+    product_repository = ProductRepositoryAdapter()
     check_stock_service = CheckStockService()
 
     # Lanzamos el consumer como tarea en background — no bloquea el arranque de FastAPI.

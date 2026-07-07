@@ -14,3 +14,15 @@ class Product:
     sku: str           # identificador de negocio, ej: "PROD-001" — lo usa el Order Service en el evento
     name: str          # nombre legible del producto
     stock_quantity: int  # unidades disponibles; si llega a 0, las órdenes se rechazan
+
+    def has_sufficient_stock(self, quantity: int) -> bool:
+    # la decisión de negocio vive aquí, no en el servicio de aplicación
+     return self.stock_quantity >= quantity
+
+    def reserve(self, quantity: int) -> None:
+    # el dominio protege su propio invariante — nunca stock negativo
+        if not self.has_sufficient_stock(quantity):
+            raise ValueError(
+                f"Insufficient stock: available={self.stock_quantity}, requested={quantity}"
+            )
+        self.stock_quantity -= quantity
