@@ -1,0 +1,10 @@
+[run]
+source = inventory_service
+# infraestructura excluida — esos archivos se cubren con integration tests en Fase 5
+omit =
+    */infrastructure/*
+    */main.py
+
+[report]
+fail_under = 80
+show_missing = true
