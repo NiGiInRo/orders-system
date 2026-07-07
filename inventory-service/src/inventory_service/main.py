@@ -6,9 +6,9 @@ from fastapi import FastAPI
 
 from inventory_service.application.check_stock_service import CheckStockService
 from inventory_service.infrastructure.messaging.rabbitmq_consumer import start_consumer
+from inventory_service.infrastructure.messaging.rabbitmq_publisher import RabbitMqPublisher
 from inventory_service.infrastructure.persistence.product_repository_adapter import ProductRepositoryAdapter
 
-# Log estructurado básico — cada línea es parseable como JSON por herramientas de observabilidad.
 logging.basicConfig(
     level=logging.INFO,
     format='{"time": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
@@ -19,26 +19,31 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- STARTUP ---
-    # Instanciamos el servicio de aplicación que el consumer va a llamar.
-    product_repository = ProductRepositoryAdapter()
-    check_stock_service = CheckStockService()
+    # 1. publisher arranca primero — el servicio necesita poder publicar
+    #    antes de empezar a consumir mensajes
+    publisher = RabbitMqPublisher()
+    await publisher.start()
 
-    # Lanzamos el consumer como tarea en background — no bloquea el arranque de FastAPI.
+    # 2. construimos el grafo completo de dependencias
+    product_repository  = ProductRepositoryAdapter()
+    check_stock_service = CheckStockService(product_repository, publisher)
+
+    # 3. consumer arranca último — ya tiene todo lo que necesita
     consumer_task = asyncio.create_task(
         start_consumer(check_stock_service.check_stock)
     )
+
     logger.info("Inventory service started")
+    yield
 
-    yield  # FastAPI atiende requests mientras el consumer corre en paralelo
-
-    # --- SHUTDOWN ---
-    # Al cerrar el proceso, cancelamos el consumer limpiamente.
+    # shutdown en orden inverso al arranque
     consumer_task.cancel()
     try:
         await consumer_task
     except asyncio.CancelledError:
-        logger.info("RabbitMQ consumer stopped cleanly")
+        pass
+
+    await publisher.stop()
 
 
 app = FastAPI(title="Inventory Service", version="0.1.0", lifespan=lifespan)
