@@ -54,7 +54,7 @@ class TestCheckStockService:
         mock_repository.check_and_reserve.return_value = (make_product(10), True)
         event = make_event(quantity=2)
 
-        result = await service.check_stock(event)
+        result = await service.check_stock(event, "corr-1")
 
         assert result.approved is True
         mock_publisher.publish_inventory_checked.assert_called_once()
@@ -68,7 +68,7 @@ class TestCheckStockService:
         mock_repository.check_and_reserve.return_value = (make_product(0), False)
         event = make_event(quantity=2)
 
-        result = await service.check_stock(event)
+        result = await service.check_stock(event, "corr-1")
 
         assert result.approved is False
         assert "Insufficient stock" in result.reason
@@ -82,7 +82,7 @@ class TestCheckStockService:
         mock_repository.check_and_reserve.return_value = (None, False)
         event = make_event(product_id="PROD-999")
 
-        result = await service.check_stock(event)
+        result = await service.check_stock(event, "corr-1")
 
         assert result.approved is False
         assert result.reason == "Product not found"
@@ -94,7 +94,7 @@ class TestCheckStockService:
         mock_repository.check_and_reserve.return_value = (make_product(5), True)
         event = make_event()
 
-        result = await service.check_stock(event)
+        result = await service.check_stock(event, "corr-1")
 
         # el resultado debe propagar los IDs del evento original
         assert result.order_id == event.order_id
@@ -107,8 +107,20 @@ class TestCheckStockService:
         mock_repository.check_and_reserve.return_value = (make_product(5), True)
         event = make_event(product_id="PROD-002")
 
-        await service.check_stock(event)
+        await service.check_stock(event, "corr-1")
 
         published = mock_publisher.publish_inventory_checked.call_args[0][0]
         assert published.customer_id == "cliente-1"
         assert published.product_id == "PROD-002"
+
+    async def test_correlation_id_is_forwarded_unchanged(
+        self, service, mock_repository, mock_publisher
+    ):
+        mock_repository.check_and_reserve.return_value = (make_product(5), True)
+        event = make_event()
+
+        await service.check_stock(event, "corr-abc-123")
+
+        # el inventory-service no genera correlationId, solo lo reenvía tal cual
+        forwarded_correlation_id = mock_publisher.publish_inventory_checked.call_args[0][1]
+        assert forwarded_correlation_id == "corr-abc-123"

@@ -47,7 +47,7 @@ class RabbitMqPublisher:
         )
         logger.info("RabbitMQ publisher ready")
 
-    async def publish_inventory_checked(self, event: InventoryCheckedEvent) -> None:
+    async def publish_inventory_checked(self, event: InventoryCheckedEvent, correlation_id: str) -> None:
         body = json.dumps({
             "orderId":    str(event.order_id),
             "customerId": event.customer_id,
@@ -62,6 +62,7 @@ class RabbitMqPublisher:
             # antes de que el notification-service lo consuma
             delivery_mode=DeliveryMode.PERSISTENT,
             content_type="application/json",
+            correlation_id=correlation_id,
         )
 
         await self._exchange.publish(message, routing_key=ROUTING_KEY)
