@@ -79,15 +79,35 @@ class OrderServiceTest {
 
         orderService.execute(command);
 
-        // ArgumentCaptor intercepta el evento para inspeccionar sus datos
-        ArgumentCaptor<OrderCreatedEvent> captor = ArgumentCaptor.forClass(OrderCreatedEvent.class);
-        verify(eventPublisher, times(1)).publishOrderCreated(captor.capture());
+        // ArgumentCaptor intercepta el evento y el correlationId para inspeccionar sus datos
+        ArgumentCaptor<OrderCreatedEvent> eventCaptor = ArgumentCaptor.forClass(OrderCreatedEvent.class);
+        ArgumentCaptor<String> correlationIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(eventPublisher, times(1)).publishOrderCreated(eventCaptor.capture(), correlationIdCaptor.capture());
 
-        OrderCreatedEvent published = captor.getValue();
+        OrderCreatedEvent published = eventCaptor.getValue();
         assertThat(published.orderId()).isEqualTo(savedOrder.getId());
         assertThat(published.customerId()).isEqualTo("customer-1");
         assertThat(published.productId()).isEqualTo("product-5");
         assertThat(published.quantity()).isEqualTo(3);
+
+        // el correlationId debe existir y ser un UUID válido generado por orden
+        assertThat(correlationIdCaptor.getValue()).isNotBlank();
+    }
+
+    @Test
+    void createOrder_shouldGenerateDifferentCorrelationId_perOrder() {
+        var command = new CreateOrderUseCase.Command("customer-1", "product-5", 3);
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.execute(command);
+        orderService.execute(command);
+
+        ArgumentCaptor<String> correlationIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(eventPublisher, times(2)).publishOrderCreated(any(), correlationIdCaptor.capture());
+
+        var ids = correlationIdCaptor.getAllValues();
+        // si esto falla, el correlationId volvió a quedar fijo por instancia del bean
+        assertThat(ids.get(0)).isNotEqualTo(ids.get(1));
     }
 
     @Test
@@ -99,7 +119,7 @@ class OrderServiceTest {
                 .isInstanceOf(RuntimeException.class);
 
         // si la persistencia falla, el evento no debe llegar al broker
-        verify(eventPublisher, never()).publishOrderCreated(any());
+        verify(eventPublisher, never()).publishOrderCreated(any(), any());
     }
 
     // ─── getOrder ─────────────────────────────────────────────────────────────

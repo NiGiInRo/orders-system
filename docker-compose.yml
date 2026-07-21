@@ -114,6 +114,25 @@ services:
     networks:
       - orders-network
 
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: orders-notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      PORT: 8083
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - orders-network
+
 volumes:
   rabbitmq_data:
   order_db_data:

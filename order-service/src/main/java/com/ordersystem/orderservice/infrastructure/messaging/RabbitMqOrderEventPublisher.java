@@ -25,8 +25,13 @@ public class RabbitMqOrderEventPublisher implements OrderEventPublisher {
     }
 
     @Override
-    public void publishOrderCreated(OrderCreatedEvent event) {
-        // convertAndSend serializa el evento a JSON y lo envía al exchange con el routing key
-        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+    public void publishOrderCreated(OrderCreatedEvent event, String correlationId) {
+        // convertAndSend serializa el evento a JSON y lo envía al exchange con el routing key.
+        // El MessagePostProcessor inyecta el correlationId en las MessageProperties (AMQP),
+        // sin tocar el body — no confundir con CorrelationData, que es para publisher confirms.
+        rabbitTemplate.convertAndSend(exchange, routingKey, event, message -> {
+            message.getMessageProperties().setCorrelationId(correlationId);
+            return message;
+        });
     }
 }

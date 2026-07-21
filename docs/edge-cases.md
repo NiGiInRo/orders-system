@@ -1,2 +1,3 @@
 Escenario	Servicio afectado	Comportamiento esperado	Estado
 Stock llega a 0 durante procesamiento concurrente	Inventory Service	SELECT FOR UPDATE bloquea la fila — solo una orden aprueba, las demás se rechazan al leer el stock ya descontado	implementado HU-13
+RabbitMQ se cae y vuelve	Notification Service	order-service (Spring AMQP) e inventory-service (aio-pika connect_robust) reconectan automáticamente por librería; amqplib no lo trae de fábrica — si la conexión se pierde, notification-service no reintenta solo	pendiente
