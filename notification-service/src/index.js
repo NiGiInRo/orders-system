@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const pino = require('pino');
 const { startConsumer } = require('./infrastructure/messaging/rabbitMqConsumer');
+const { JsonLogNotifier } = require('./infrastructure/logging/jsonLogNotifier');
+const { NotifyResultService } = require('./application/notifyResultService');
 
 const logger = pino();
 const app = express();
@@ -16,13 +18,12 @@ app.listen(port, () => {
   logger.info(`notification-service listening on port ${port}`);
 });
 
-// HU-17 reemplaza este handler por el que arma el log estructurado exacto
-// (correlationId, orderId, result, timestamp)
-async function handleInventoryChecked(event, correlationId) {
-  logger.info({ correlationId, orderId: event.orderId }, 'inventory.checked received');
-}
+// composición: el dominio (NotifyResultService) no sabe que el canal es un log JSON con pino
+const notifier = new JsonLogNotifier(logger);
+const notifyResultService = new NotifyResultService(notifier);
 
-startConsumer(handleInventoryChecked).catch((err) => {
-  logger.error({ err }, 'Failed to start RabbitMQ consumer');
-  process.exit(1);
-});
+startConsumer((event, correlationId) => notifyResultService.notifyResult(event, correlationId))
+  .catch((err) => {
+    logger.error({ err }, 'Failed to start RabbitMQ consumer');
+    process.exit(1);
+  });
