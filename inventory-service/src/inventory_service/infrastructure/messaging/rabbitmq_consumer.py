@@ -77,7 +77,7 @@ async def start_consumer(message_handler) -> None:
                 quantity=body["quantity"],
             )
             # HU-14 usará este resultado para publicar inventory.checked
-            result = await message_handler(event)
+            result = await message_handler(event, message.correlation_id)
             logger.info("Order processed: order_id=%s approved=%s", event.order_id, result.approved)
 
     await queue.consume(on_message)

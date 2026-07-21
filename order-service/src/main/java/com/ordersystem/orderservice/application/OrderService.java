@@ -30,10 +30,15 @@ public class OrderService implements CreateOrderUseCase, GetOrderUseCase {
         // primero persistir — si falla, el evento nunca se publica
         Order saved = orderRepository.save(order);
 
+        // correlationId por orden, no por instancia del bean — cada creación
+        // de orden necesita su propio identificador de trazabilidad
+        String correlationId = UUID.randomUUID().toString();
+
         // luego publicar — el evento lleva los datos de la orden ya guardada
         eventPublisher.publishOrderCreated(
                 new OrderCreatedEvent(saved.getId(), saved.getCustomerId(),
-                        saved.getProductId(), saved.getQuantity())
+                        saved.getProductId(), saved.getQuantity()),
+                correlationId
         );
 
         return saved;

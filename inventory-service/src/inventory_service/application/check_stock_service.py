@@ -16,7 +16,7 @@ class CheckStockService:
         self._repo      = product_repository
         self._publisher = publisher
 
-    async def check_stock(self, event: OrderCreatedEvent) -> StockCheckResult:
+    async def check_stock(self, event: OrderCreatedEvent, correlation_id: str) -> StockCheckResult:
         product, approved = await asyncio.to_thread(
             self._repo.check_and_reserve,
             event.product_id,
@@ -45,7 +45,7 @@ class CheckStockService:
                 product_id=result.product_id,
                 approved=result.approved,
                 reason=result.reason,
-            )
+            ), correlation_id
         )
 
         return result
