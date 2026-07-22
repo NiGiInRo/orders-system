@@ -84,3 +84,30 @@ jobs:
       - name: Build Docker image
         working-directory: notification-service
         run: docker build -t notification-service:${{ github.sha }} .
+
+  build-api-gateway:
+    name: Build API Gateway
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: api-gateway/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api-gateway
+        run: npm ci
+
+      - name: Run tests
+        working-directory: api-gateway
+        run: npm test
+
+      - name: Build Docker image
+        working-directory: api-gateway
+        run: docker build -t api-gateway:${{ github.sha }} .
